@@ -1,5 +1,3 @@
-[<img src="https://github-ads.s3.eu-central-1.amazonaws.com/support-ukraine.svg?t=1" />](https://supportukrainenow.org)
-
 # A Laravel package for multi-source data aggregation and indexing
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/nihilsen/seeker.svg?style=flat-square)](https://packagist.org/packages/nihilsen/seeker)
@@ -7,15 +5,7 @@
 [![GitHub Code Style Action Status](https://img.shields.io/github/workflow/status/nihilsen/seeker/Fix%20PHP%20code%20style%20issues?label=code%20style)](https://github.com/nihilsen/seeker/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/nihilsen/seeker.svg?style=flat-square)](https://packagist.org/packages/nihilsen/seeker)
 
-This is where your description should go. Limit it to a paragraph or two. Consider adding a small example.
-
-## Support us
-
-[<img src="https://github-ads.s3.eu-central-1.amazonaws.com/seeker.jpg?t=1" width="419px" />](https://spatie.be/github-ad-click/seeker)
-
-We invest a lot of resources into creating [best in class open source packages](https://spatie.be/open-source). You can support us by [buying one of our paid products](https://spatie.be/open-source/support-us).
-
-We highly appreciate you sending us a postcard from your hometown, mentioning which of our package(s) you are using. You'll find our address on [our contact page](https://spatie.be/about-us). We publish all received postcards on [our virtual postcard wall](https://spatie.be/open-source/postcards).
+This Laravel package provides a class-based framework for multi-source data aggregation and assimilation to Eloquent models.
 
 ## Installation
 
@@ -40,21 +30,54 @@ php artisan vendor:publish --tag="seeker-config"
 This is the contents of the published config file:
 
 ```php
+<?php
+
 return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Endpoints
+    |--------------------------------------------------------------------------
+    |
+    | Endpoint classes may be listed here as an array to control which should
+    | be loaded.
+    |
+    | Alternatively, if set to null, we will attempt auto-loading from the
+    | configured endpoints namespace (see below).
+    |
+    */
+
+    'endpoints' => null,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Namespace
+    |--------------------------------------------------------------------------
+    |
+    | Set the namespace to associate with endpoint classes.
+    |
+    */
+
+    'namespace' => \App\Seeker\Endpoints::class,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Rate limiting
+    |--------------------------------------------------------------------------
+    |
+    | Set the rate limiting middleware to use for Seek jobs.
+    |
+    | May be set to false or null to disable queue-level rate limiting.
+    |
+    | For optimized rate limiting using Redis, consider using
+    | "Illuminate\Queue\Middleware\RateLimitedWithRedis::class",
+    | as per <https://laravel.com/docs/9.x/queues#rate-limiting>
+    |
+    */
+
+    'rate_limiter' => Illuminate\Queue\Middleware\RateLimited::class,
+
 ];
-```
-
-Optionally, you can publish the views using
-
-```bash
-php artisan vendor:publish --tag="seeker-views"
-```
-
-## Usage
-
-```php
-$seeker = new Nihilsen\Seeker();
-echo $seeker->echoPhrase('Hello, Nihilsen!');
 ```
 
 ## Testing
@@ -70,10 +93,6 @@ Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed re
 ## Contributing
 
 Please see [CONTRIBUTING](https://github.com/nihilsen/.github/blob/main/CONTRIBUTING.md) for details.
-
-## Security Vulnerabilities
-
-Please review [our security policy](../../security/policy) on how to report security vulnerabilities.
 
 ## Credits
 
