@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Scope;
 use Illuminate\Support\Facades\DB;
 use Nihilsen\LaravelJoinUsing\JoinUsingClause;
 use Nihilsen\Seeker\Endpoints;
-use Nihilsen\Seeker\Schema;
 
 class MergeWithRegistered implements Scope
 {
@@ -26,22 +25,16 @@ class MergeWithRegistered implements Scope
         $this->model = $model;
 
         if ($classes = Endpoints::classes()) {
-            $query->rightJoinSub(
-                $this->getRightJoinQuery($classes),
-                'registered_'.Schema::endpointsTable,
-                fn (JoinUsingClause $join) => $join->using('class'),
+            $query->fromSub(
+                $this->getSubQuery($classes),
+                $model->getTable()
+            );
+
+            $query->leftJoin(
+                $model->getTable(),
+                fn (JoinUsingClause $join) => $join->using('class')
             );
         }
-    }
-
-    protected function getRightJoinQuery(array $classes)
-    {
-        $query = $this->getRowForUnionExpression(array_shift($classes));
-        foreach ($classes as $class) {
-            $query->unionAll($this->getRowForUnionExpression($class));
-        }
-
-        return $query;
     }
 
     /**
@@ -61,5 +54,15 @@ class MergeWithRegistered implements Scope
         );
 
         return DB::query()->select(['class' => fn ($query) => $query->select(DB::raw("'$class'"))]);
+    }
+
+    protected function getSubQuery(array $classes)
+    {
+        $query = $this->getRowForUnionExpression(array_shift($classes));
+        foreach ($classes as $class) {
+            $query->unionAll($this->getRowForUnionExpression($class));
+        }
+
+        return $query;
     }
 }
