@@ -132,30 +132,12 @@ class SeekAll implements ShouldQueue, ShouldBeUnique
 
         /** @var \Nihilsen\Seeker\Response */
         foreach ($responses->cursor() as $response) {
-            $urls = $response->iterableUrls();
-
-            if (is_null($response->seekable_urls)) {
-                $response->seekable_urls = $urls->count();
-                $response->save();
-            }
-
-            if ($urls->isEmpty()) {
-                continue;
-            }
-
-            /** @var \Illuminate\Support\Collection */
-            $alreadySoughtUrls = $response
-                ->load('children:url')
-                ->children
-                ->pluck('url');
-
-            $needToSeekUrls = $urls->reject(fn ($url) => $alreadySoughtUrls->contains($url));
-
             /** @var string */
-            foreach ($needToSeekUrls as $url) {
+            foreach ($response->urls() as $url) {
                 yield new Seek(
-                    $response->seekable,
                     $response->endpoint,
+                    $response->seekable,
+                    $response,
                     $url
                 );
             }
@@ -203,8 +185,8 @@ class SeekAll implements ShouldQueue, ShouldBeUnique
                     $keys[] = $key;
 
                     yield new Seek(
-                        $seekable,
-                        new $class()
+                        endpoint: new $class(),
+                        seekable: $seekable,
                     );
                 }
             }

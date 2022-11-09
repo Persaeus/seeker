@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Http\Client\Response as Base;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Collection;
 use Nihilsen\Seeker\Jobs\Assimilate;
 
 /**
@@ -110,13 +109,15 @@ class Response extends Model
     /**
      * Create a "failed" response row.
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $seekable
+     * @param  \Illuminate\Database\Eloquent\Model|null  $seekable
      * @param  Endpoint  $endpoint
      * @param  string  $url
+     * @param  int|null  $status
      */
     public static function failed(
-        Model $seekable,
         Endpoint $endpoint,
+        ?Model $seekable,
+        ?self $parent,
         string $url,
         ?int $status = null
     ) {
@@ -124,8 +125,9 @@ class Response extends Model
         $status ??= 444;
 
         $response = static::new(
-            $seekable,
             $endpoint,
+            $seekable,
+            $parent,
             $url,
             $status
         );
@@ -137,13 +139,15 @@ class Response extends Model
 
     public static function from(
         Base $base,
-        ?Model $seekable,
         Endpoint $endpoint,
-        string $url
+        ?Model $seekable,
+        ?self $parent,
+        string $url,
     ): ?static {
         $response = static::new(
-            $seekable,
             $endpoint,
+            $seekable,
+            $parent,
             $url,
             $base->status()
         );
@@ -155,19 +159,10 @@ class Response extends Model
         return $response;
     }
 
-    /**
-     * Get the urls from which to continue seeking.
-     *
-     * @return \Illuminate\Support\Collection
-     */
-    public function iterableUrls(): Collection
-    {
-        return collect($this->endpoint->iterate($this->decode()));
-    }
-
     protected static function new(
-        ?Model $seekable,
         Endpoint $endpoint,
+        ?Model $seekable,
+        ?self $parent,
         string $url,
         int $status
     ) {
@@ -175,6 +170,10 @@ class Response extends Model
 
         if ($seekable) {
             $response->seekable()->associate($seekable);
+        }
+
+        if ($parent) {
+            $response->parent()->associate($parent);
         }
 
         $response->endpoint()->associate($endpoint);
@@ -186,6 +185,11 @@ class Response extends Model
         return $response;
     }
 
+    public function parent()
+    {
+        return $this->belongsTo(static::class, 'parent_id');
+    }
+
     public function parts(): array
     {
         return Arr::wrap($this->endpoint->partition($this->decode()));
@@ -194,5 +198,29 @@ class Response extends Model
     public function seekable(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    public function urls(): iterable
+    {
+        $urls = collect($this->endpoint->urlsIn($this->decode()));
+
+        if (is_null($this->seekable_urls)) {
+            $this->seekable_urls = $urls->count();
+            $this->save();
+        }
+
+        if ($urls->isEmpty()) {
+            return [];
+        }
+
+        /** @var \Illuminate\Support\Collection */
+        $alreadySoughtUrls = $this
+            ->load('children:url')
+            ->children
+            ->pluck('url');
+
+        foreach ($urls->reject(fn ($url) => $alreadySoughtUrls->contains($url)) as $url) {
+            yield $url;
+        }
     }
 }

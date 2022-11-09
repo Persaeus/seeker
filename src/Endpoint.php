@@ -153,17 +153,6 @@ abstract class Endpoint extends Endpoints
     }
 
     /**
-     * Find urls in the given decoded response from which to continue seeking.
-     *
-     * @param  mixed  $response
-     * @return string|string[]
-     */
-    public function iterate($response): string|iterable
-    {
-        return [];
-    }
-
-    /**
      * Get the http method.
      *
      * @return string
@@ -193,93 +182,6 @@ abstract class Endpoint extends Endpoints
     {
         return $decodedResponse;
     }
-
-    /**
-     * Get the http PendingRequest
-     *
-     * @return \Illuminate\Http\Client\PendingRequest
-     */
-    public function request(): PendingRequest
-    {
-        return Http::withUserAgent($this->userAgent());
-    }
-
-    /**
-     * Get the sought responses.
-     */
-    public function responses(): HasMany
-    {
-        return $this->hasMany(Response::class);
-    }
-
-    /**
-     * Seek the given $seekable, optionally using the provided $url.
-     *
-     * @param  mixed  $seekable
-     * @param  string|null  $url
-     * @param  bool  $final Whether this attempt is the final of multiple attempts,
-     *                       in which case a "failed" response model is created to
-     *                       signal that the seekable has been sought unsuccessfully.
-     * @return Response|null
-     *
-     * @throws \Throwable
-     */
-    public function seek(
-        ?string $url = null,
-        bool $final = false
-    ): ?Response {
-        $this->url = $url ?? $this->url();
-
-        try {
-            $response = $this->request()->send(
-                $this->method(),
-                $this->url,
-                $this->options()
-            );
-        } catch (\Throwable $th) {
-            $failed = $th;
-        }
-
-        if ($failed ??= ! $response->successful()) {
-            if ($final) {
-                Response::failed(
-                    $this->seekable,
-                    $this,
-                    $this->url,
-                    $response?->status()
-                );
-            }
-
-            throw new UnsuccessfulSeekAttempt($failed);
-        }
-
-        return Response::from(
-            $response,
-            $this->seekable,
-            $this,
-            $this->url
-        );
-    }
-
-    /**
-     * Set the $seekable model.
-     *
-     * @param  mixed  $seekable
-     * @return static
-     */
-    public function seeking($seekable): static
-    {
-        $this->seekable = $seekable;
-
-        return $this;
-    }
-
-    /**
-     * Get the seekable classes that can be sought with this seeker.
-     *
-     * @return string|array<string|int,string|\Closure>
-     */
-    abstract public static function seeks(): string|array;
 
     /**
      * Get the query closures keyed by the class of the model for which they apply.
@@ -315,6 +217,96 @@ abstract class Endpoint extends Endpoints
     }
 
     /**
+     * Get the http PendingRequest
+     *
+     * @return \Illuminate\Http\Client\PendingRequest
+     */
+    public function request(): PendingRequest
+    {
+        return Http::withUserAgent($this->userAgent());
+    }
+
+    /**
+     * Get the sought responses.
+     */
+    public function responses(): HasMany
+    {
+        return $this->hasMany(Response::class);
+    }
+
+    /**
+     * Seek using given parameters, and optionally using the provided $url.
+     *
+     * @param  string|null  $url
+     * @param  bool  $final Whether this attempt is the final of multiple attempts,
+     *                       in which case a "failed" response model is created to
+     *                       signal that the seekable has been sought unsuccessfully.
+     * @return Response|null
+     *
+     * @throws \Throwable
+     */
+    public function seek(
+        ?string $url = null,
+        bool $final = false,
+        ?Response $parentResponse = null,
+    ): ?Response {
+        $this->url = $url ?? $this->url();
+
+        try {
+            $response = $this->request()->send(
+                $this->method(),
+                $this->url,
+                $this->options()
+            );
+        } catch (\Throwable $th) {
+            $failed = $th;
+        }
+
+        if ($failed ??= ! $response->successful()) {
+            if ($final) {
+                Response::failed(
+                    $this,
+                    $this->seekable,
+                    $parentResponse,
+                    $this->url,
+                    $response?->status()
+                );
+            }
+
+            throw new UnsuccessfulSeekAttempt($failed);
+        }
+
+        return Response::from(
+            $response,
+            $this,
+            $this->seekable,
+            $parentResponse,
+            $this->url,
+            $parentResponse
+        );
+    }
+
+    /**
+     * Set the $seekable model.
+     *
+     * @param  mixed  $seekable
+     * @return static
+     */
+    public function seeking($seekable): static
+    {
+        $this->seekable = $seekable;
+
+        return $this;
+    }
+
+    /**
+     * Get the seekable classes that can be sought with this seeker.
+     *
+     * @return string|array<string|int,string|\Closure>
+     */
+    abstract public static function seeks(): string|array;
+
+    /**
      * Get the URL for the http request.
      *
      * @return string
@@ -322,6 +314,17 @@ abstract class Endpoint extends Endpoints
     public function url(): string
     {
         return $this->url;
+    }
+
+    /**
+     * Determine url(s) for the given decoded $response from which to continue seeking.
+     *
+     * @param  mixed  $response
+     * @return string|string[]
+     */
+    public function urlsIn($response): string|iterable
+    {
+        return [];
     }
 
     /**

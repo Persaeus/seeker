@@ -12,6 +12,7 @@ use Nihilsen\Seeker\Config;
 use Nihilsen\Seeker\Endpoint;
 use Nihilsen\Seeker\Endpoints;
 use Nihilsen\Seeker\Exceptions\UnsuccessfulSeekAttempt;
+use Nihilsen\Seeker\Response;
 
 class Seek implements ShouldQueue
 {
@@ -23,9 +24,10 @@ class Seek implements ShouldQueue
     public int $attempts = 0;
 
     public function __construct(
-        protected Model $seekable,
-        protected ?Endpoint $endpoint = null,
-        protected ?string $url = null
+        protected ?Endpoint $endpoint,
+        protected ?Model $seekable,
+        public readonly ?Response $parentResponse = null,
+        protected ?string $url = null,
     ) {
         //
     }
@@ -44,7 +46,8 @@ class Seek implements ShouldQueue
                 ->seeking($this->seekable)
                 ->seek(
                     $this->url,
-                    $final
+                    $final,
+                    $this->parentResponse
                 );
         } catch (\Throwable $th) {
             if (
