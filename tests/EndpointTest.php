@@ -16,7 +16,7 @@ it('can enumerate endpoints', function () {
 
     expect($endpoints)
         ->toBeInstanceOf(Collection::class)
-        ->toHaveCount(4);
+        ->toHaveCount(5);
 
     expect($endpoints->first())->toBeInstanceOf(SimpleEndpoint::class);
 });
@@ -35,12 +35,12 @@ it('can query endpoints by the models they seek', function () {
     $complexModelFourtyTwo->save();
 
     expect($endpoints = Endpoints::for($simpleModelTwo)->get())
-        ->toHaveCount(1)
+        ->toHaveCount(2)
         ->and($endpoints->first())
         ->toBeInstanceOf(SimpleEndpoint::class);
 
     expect($endpoints = Endpoints::for($simpleModelFourtyTwo)->get())
-        ->toHaveCount(2)
+        ->toHaveCount(3)
         ->and($endpoints->map->class)
         ->toMatchArray(['SimpleEndpoint', 'ComplexEndpoint']);
 

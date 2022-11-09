@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
 use Nihilsen\Seeker\Endpoints;
 use Nihilsen\Seeker\Tests\Endpoints\ComplexEndpoint;
+use Nihilsen\Seeker\Tests\Endpoints\IterativeEndpoint;
 use Nihilsen\Seeker\Tests\Endpoints\SimpleEndpoint;
 use Nihilsen\Seeker\Tests\Models\ComplexModel;
 use Nihilsen\Seeker\Tests\Models\SimpleModel;
@@ -121,4 +122,30 @@ it('can seek, analyze and assimilate complex data from complex endpoint', functi
         ->toBe('seekable')
         ->and($assimilatedModel->simpleModel?->value)
         ->toBe('99');
+});
+
+it('can seek and assimilate iteratively', function () {
+    Http::fake([
+        'iterative.invalid' => Http::response('{"results": [{"value":"first"}], "next": "iterative.invalid/2"}'),
+        'iterative.invalid/2' => Http::response('{"results": [{"value":"second"}]}'),
+    ]);
+
+    $response = IterativeEndpoint::get()->seek();
+    $response->assimilate();
+
+    foreach ($response->urls() as $url) {
+        IterativeEndpoint::get()
+            ->seek(
+                $url,
+                parentResponse: $response
+            )
+            ->assimilate();
+    }
+
+    expect($models = SimpleModel::all())
+        ->toHaveCount(2)
+        ->and($models->map->value)
+        ->toMatchArray(['first', 'second']);
+
+    expect($response->children()->count())->toBe(1);
 });

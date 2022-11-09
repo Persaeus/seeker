@@ -8,6 +8,7 @@ use Nihilsen\LaravelJoinUsing\ServiceProvider as LaravelJoinUsingServiceProvider
 use Nihilsen\Seeker\ServiceProvider;
 use Nihilsen\Seeker\Tests\Endpoints\ComplexEndpoint;
 use Nihilsen\Seeker\Tests\Endpoints\ComplexSeedableEndpoint;
+use Nihilsen\Seeker\Tests\Endpoints\IterativeEndpoint;
 use Nihilsen\Seeker\Tests\Endpoints\SimpleEndpoint;
 use Nihilsen\Seeker\Tests\Endpoints\SimpleSeedableEndpoint;
 use Orchestra\Testbench\TestCase as Orchestra;
@@ -51,6 +52,7 @@ class TestCase extends Orchestra
                     ComplexEndpoint::class,
                     SimpleSeedableEndpoint::class,
                     ComplexSeedableEndpoint::class,
+                    IterativeEndpoint::class,
                 ],
                 'namespace' => Endpoints::class,
             ],
