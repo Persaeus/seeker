@@ -16,6 +16,11 @@ class Config
         );
     }
 
+    public static function directory(): ?string
+    {
+        return self::get('directory');
+    }
+
     public static function endpoints(): ?array
     {
         if (is_null($value = self::get('endpoints'))) {

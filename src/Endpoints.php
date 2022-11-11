@@ -33,6 +33,13 @@ class Endpoints extends Model
     protected static array $classes;
 
     /**
+     * The directory in which to attempt auto-discovery
+     *
+     * @var string
+     */
+    protected static string $directory;
+
+    /**
      * {@inheritDoc}
      */
     protected $fillable = ['class'];
@@ -46,6 +53,40 @@ class Endpoints extends Model
      * {@inheritDoc}
      */
     public $timestamps = false;
+
+    /**
+     * Attempt to auto-discover the endpoint classes from the file system.
+     *
+     * @return array
+     */
+    protected static function autoDiscover(): array
+    {
+        try {
+            $finder = Finder::create()->in($directory = static::directory());
+        } catch (DirectoryNotFoundException) {
+            return [];
+        }
+
+        return collect($finder)
+            ->map(
+                fn ($path) => Str::of($path)
+                    ->after($directory)
+                    ->replace(
+                        ['/', '.php'],
+                        ['\\', ''],
+                    )
+                    ->prepend(static::namespace())
+                    ->toString()
+            )
+            ->filter(
+                fn ($class) => (
+                    is_subclass_of($class, Endpoint::class) &&
+                    ! (new \ReflectionClass($class))->isAbstract()
+                )
+            )
+            ->values()
+            ->all();
+    }
 
     /**
      * Perform any actions required after the model boots.
@@ -66,13 +107,18 @@ class Endpoints extends Model
     }
 
     /**
-     * Get all the registered endpoint classes
+     * Get or set the endpoint classes.
      *
+     * @param class-string<\Nihilsen\Seeker\Endpoint>[]|null $classes
      * @return class-string<\Nihilsen\Seeker\Endpoint>[]
      */
-    public static function classes(): array
+    public static function classes(?array $classes = null): array
     {
-        return static::$classes ??= Config::endpoints() ?? static::findClasses();
+        if ($classes) {
+            return static::$classes = $classes;
+        }
+
+        return static::$classes ??= Config::endpoints() ?? static::autoDiscover();
     }
 
     /**
@@ -82,13 +128,16 @@ class Endpoints extends Model
     {
         return Str::start(
             $alias,
-            Config::namespace().'\\'
+            static::namespace().'\\'
         );
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function classToAlias($className)
     {
-        return Str::after($className, Config::namespace().'\\');
+        return Str::after($className, static::namespace().'\\');
     }
 
     /**
@@ -106,41 +155,34 @@ class Endpoints extends Model
         );
     }
 
-    protected static function findClasses(): array
+    /**
+     * Get the directory in which to auto-discover endpoint classes.
+     *
+     * @return string
+     */
+    public static function directory(): string
     {
+        if ($directory = Config::directory()) {
+            return $directory;
+        }
+
         $appNamespace = app()->getNamespace();
 
-        if (! $endpointNamespace = Str::after(Config::namespace(), $appNamespace)) {
-            throw new \UnexpectedValueException('Could not resolve namespace for auto-registration of endpoint classes');
+        if (! $endpointNamespace = Str::after(static::namespace(), $appNamespace)) {
+            throw new \UnexpectedValueException('Could not resolve namespace for auto-discover of endpoint classes');
         }
 
-        $endpointDirectory = app_path(str_replace('\\', '/', $endpointNamespace));
+        return app_path(str_replace('\\', '/', $endpointNamespace));
+    }
 
-        try {
-            $finder = Finder::create()->in($endpointDirectory);
-        } catch (DirectoryNotFoundException) {
-            return [];
-        }
-
-        return collect($finder)
-            ->map(
-                fn ($path) => Str::of($path)
-                    ->after(app_path().DIRECTORY_SEPARATOR)
-                    ->replace(
-                        ['/', '.php'],
-                        ['\\', ''],
-                    )
-                    ->prepend($appNamespace)
-                    ->toString()
-            )
-            ->filter(
-                fn ($class) => (
-                    is_subclass_of($class, Endpoint::class) &&
-                    ! (new \ReflectionClass($class))->isAbstract()
-                )
-            )
-            ->values()
-            ->all();
+    /**
+     * Get the namespace in which to auto-discover endpoints.
+     *
+     * @return string
+     */
+    public static function namespace(): string
+    {
+        return Config::namespace();
     }
 
     /**

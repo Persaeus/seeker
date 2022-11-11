@@ -10,7 +10,7 @@ return [
     | Endpoint classes may be listed here as an array to control which should
     | be loaded.
     |
-    | Alternatively, if set to null, we will attempt auto-loading from the
+    | Alternatively, if set to null, we attempt auto-loading from the
     | configured endpoints namespace (see below).
     |
     */
@@ -22,11 +22,25 @@ return [
     | Namespace
     |--------------------------------------------------------------------------
     |
-    | Set the namespace to associate with endpoint classes.
+    | Set the root namespace to associate with endpoint classes, for use in
+    | endpoint auto-discovery.
     |
     */
 
     'namespace' => \App\Seeker\Endpoints::class,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Directory
+    |--------------------------------------------------------------------------
+    |
+    | Set the root directory for use in endpoint auto-discovery.
+    |
+    | If set to null, we attempt to infer directory from the namespace.
+    |
+    */
+
+    'directory' => null,
 
     /*
     |--------------------------------------------------------------------------
