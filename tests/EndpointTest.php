@@ -50,11 +50,12 @@ it('can query endpoints by the models they seek', function () {
 
     expect($endpoints = Endpoints::for($simpleModelFourtyTwo)->get())
         ->toHaveCount(3)
-        ->and($endpoints->map->class)
-        ->toMatchArray([
-            'ComplexEndpoint',
-            'SimpleEndpoint',
-        ]);
+        ->and($endpoints->map(fn ($endpoint) => $endpoint::class))
+        ->toContain(
+            ComplexEndpoint::class,
+            IterativeEndpoint::class,
+            SimpleEndpoint::class,
+        );
 
     expect(Endpoints::for($complexModelTwo)->get())->toBeEmpty();
 
