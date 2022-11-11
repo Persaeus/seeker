@@ -3,22 +3,31 @@
 use Illuminate\Database\Eloquent\Collection;
 use Nihilsen\Seeker\Endpoints;
 use Nihilsen\Seeker\Tests\Endpoints\ComplexEndpoint;
+use Nihilsen\Seeker\Tests\Endpoints\ComplexSeedableEndpoint;
+use Nihilsen\Seeker\Tests\Endpoints\IterativeEndpoint;
 use Nihilsen\Seeker\Tests\Endpoints\SimpleEndpoint;
+use Nihilsen\Seeker\Tests\Endpoints\SimpleSeedableEndpoint;
 use Nihilsen\Seeker\Tests\Models\ComplexModel;
 use Nihilsen\Seeker\Tests\Models\SimpleModel;
 
 it('can auto-discover endpoints', function () {
-    // TODO:
-})->skip();
+    expect(Endpoints::classes())->not->toBeEmpty();
+});
 
 it('can enumerate endpoints', function () {
     $endpoints = Endpoints::all();
 
     expect($endpoints)
         ->toBeInstanceOf(Collection::class)
-        ->toHaveCount(5);
-
-    expect($endpoints->first())->toBeInstanceOf(SimpleEndpoint::class);
+        ->toHaveCount(5)
+        ->and($endpoints->map(fn ($endpoint) => $endpoint::class))
+        ->toContain(
+            SimpleEndpoint::class,
+            ComplexEndpoint::class,
+            SimpleSeedableEndpoint::class,
+            ComplexSeedableEndpoint::class,
+            IterativeEndpoint::class
+        );
 });
 
 it('can query endpoints by the models they seek', function () {
@@ -42,7 +51,10 @@ it('can query endpoints by the models they seek', function () {
     expect($endpoints = Endpoints::for($simpleModelFourtyTwo)->get())
         ->toHaveCount(3)
         ->and($endpoints->map->class)
-        ->toMatchArray(['SimpleEndpoint', 'ComplexEndpoint']);
+        ->toMatchArray([
+            'ComplexEndpoint',
+            'SimpleEndpoint',
+        ]);
 
     expect(Endpoints::for($complexModelTwo)->get())->toBeEmpty();
 

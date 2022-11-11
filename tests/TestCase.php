@@ -6,11 +6,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Nihilsen\LaravelJoinUsing\ServiceProvider as LaravelJoinUsingServiceProvider;
 use Nihilsen\Seeker\ServiceProvider;
-use Nihilsen\Seeker\Tests\Endpoints\ComplexEndpoint;
-use Nihilsen\Seeker\Tests\Endpoints\ComplexSeedableEndpoint;
-use Nihilsen\Seeker\Tests\Endpoints\IterativeEndpoint;
-use Nihilsen\Seeker\Tests\Endpoints\SimpleEndpoint;
-use Nihilsen\Seeker\Tests\Endpoints\SimpleSeedableEndpoint;
 use Orchestra\Testbench\TestCase as Orchestra;
 
 class TestCase extends Orchestra
@@ -47,14 +42,8 @@ class TestCase extends Orchestra
         config()->set([
             'database.default' => 'testing',
             'seeker' => [
-                'endpoints' => [
-                    SimpleEndpoint::class,
-                    ComplexEndpoint::class,
-                    SimpleSeedableEndpoint::class,
-                    ComplexSeedableEndpoint::class,
-                    IterativeEndpoint::class,
-                ],
-                'namespace' => Endpoints::class,
+                'namespace' => \Nihilsen\Seeker\Tests\Endpoints::class,
+                'directory' => __DIR__.DIRECTORY_SEPARATOR.'Endpoints',
             ],
         ]);
     }
