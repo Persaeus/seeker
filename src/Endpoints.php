@@ -4,26 +4,23 @@ namespace Nihilsen\Seeker;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Str;
 use Nihilsen\Seeker\Contracts\Seedable;
-use Nihilsen\Seeker\Scopes\MergeWithRegistered;
-use Parental\HasChildren;
+use Nihilsen\Seeker\Scopes\MergeEndpoints;
 use Symfony\Component\Finder\Exception\DirectoryNotFoundException;
 use Symfony\Component\Finder\Finder;
 
 /**
+ * @property-read \Nihilsen\Seeker\Queue|null $queue
+ *
  * @method static \Illuminate\Database\Eloquent\Builder for(\Illuminate\Database\Eloquent\Model $seekable)
  */
 class Endpoints extends Model
 {
-    use HasChildren;
-
-    /**
-     * {@inheritDoc}
-     */
-    protected $childColumn = 'class';
+    use Superclass;
 
     /**
      * The registered endpoint classes.
@@ -38,11 +35,6 @@ class Endpoints extends Model
      * @var string
      */
     protected static string $directory;
-
-    /**
-     * {@inheritDoc}
-     */
-    protected $fillable = ['class'];
 
     /**
      * {@inheritDoc}
@@ -95,12 +87,19 @@ class Endpoints extends Model
      */
     protected static function booted()
     {
-        static::addGlobalScope(new MergeWithRegistered());
+        static::addGlobalScope(new MergeEndpoints());
 
-        static::retrieved(function (self $endpoint) {
+        static::retrieved(function (Endpoint $endpoint) {
             $endpoint->exists = (bool) $endpoint->getKey();
 
             if (! $endpoint->exists) {
+                if (
+                    isset($endpoint::$defaultQueue) &&
+                    $queue = $endpoint::$defaultQueue::get()
+                ) {
+                    $endpoint->queue()->associate($queue);
+                }
+
                 $endpoint->save();
             }
         });
@@ -119,25 +118,6 @@ class Endpoints extends Model
         }
 
         return static::$classes ??= Config::endpoints() ?? static::autoDiscover();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function classFromAlias($alias)
-    {
-        return Str::start(
-            $alias,
-            static::namespace().'\\'
-        );
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function classToAlias($className)
-    {
-        return Str::after($className, static::namespace().'\\');
     }
 
     /**
@@ -183,6 +163,14 @@ class Endpoints extends Model
     public static function namespace(): string
     {
         return Config::namespace();
+    }
+
+    /**
+     * Get the queue associated with the seeker (for rate-limiting purposes)
+     */
+    public function queue(): BelongsTo
+    {
+        return $this->belongsTo(Queues::class);
     }
 
     /**

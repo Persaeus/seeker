@@ -5,7 +5,6 @@ namespace Nihilsen\Seeker;
 use Composer\InstalledVersions;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
@@ -14,14 +13,10 @@ use Nihilsen\Seeker\Decoders\JsonDecoder;
 use Nihilsen\Seeker\Decoders\NullDecoder;
 use Nihilsen\Seeker\Exceptions\UnexpectedValueException;
 use Nihilsen\Seeker\Exceptions\UnsuccessfulSeekAttempt;
-use Parental\HasParent;
 
-/**
- * @property-read \Nihilsen\Seeker\Queue|null $queue
- */
 abstract class Endpoint extends Endpoints
 {
-    use HasParent;
+    use Subclass;
 
     /**
      * The maximum number of times we should attempt to
@@ -47,6 +42,13 @@ abstract class Endpoint extends Endpoints
     protected ?string $decoder = JsonDecoder::class;
 
     /**
+     * The default Queue class (for rate-limiting purposes)
+     *
+     * @var class-string<\Nihilsen\Seeker\Queue>
+     */
+    public static string $defaultQueue;
+
+    /**
      * The http request method to use.
      *
      * @var string
@@ -59,13 +61,6 @@ abstract class Endpoint extends Endpoints
      * @var array
      */
     protected array $options = [];
-
-    /**
-     * The Queue class (for rate-limiting purposes)
-     *
-     * @var class-string<\Nihilsen\Seeker\Queue>
-     */
-    protected string $queue;
 
     /**
      * The seekable model, which will be set during the seek procedure.
@@ -102,7 +97,7 @@ abstract class Endpoint extends Endpoints
     {
         // Change HasParent scope to use unqualified
         // column name, so as to not exclude results
-        // injected via the MergeWithRegistered scope.
+        // injected via the MergeEndpoint scope.
         unset(static::$globalScopes[static::class]);
         parent::booted();
         static::addGlobalScope(fn (Builder $query) => $query->where(
@@ -142,14 +137,6 @@ abstract class Endpoint extends Endpoints
     public static function get(): static
     {
         return static::first();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    protected function getParentClass()
-    {
-        return parent::class;
     }
 
     /**
@@ -206,14 +193,6 @@ abstract class Endpoint extends Endpoints
                 return [$key => $value];
             })
             ->all();
-    }
-
-    /**
-     * Get the queue associated with the seeker (for rate-limiting purposes)
-     */
-    public function queue(): BelongsTo
-    {
-        return $this->belongsTo(Queue::class);
     }
 
     /**

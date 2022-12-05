@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Nihilsen\LaravelJoinUsing\JoinUsingClause;
 use Nihilsen\Seeker\Endpoints;
 
-class MergeWithRegistered implements Scope
+class MergeEndpoints implements Scope
 {
     protected Endpoints $model;
 
@@ -45,12 +45,10 @@ class MergeWithRegistered implements Scope
      */
     protected function getRowForUnionExpression(string $class)
     {
-        $class = $this->model->classToAlias($class);
-
         $class = str_replace(
             '\\',
             '\\\\',
-            $class,
+            $this->model->classToAlias($class),
         );
 
         return DB::query()->select(['class' => fn ($query) => $query->select(DB::raw("'$class'"))]);

@@ -15,6 +15,7 @@ use Nihilsen\Seeker\Contracts\ShouldSeekContinually;
 use Nihilsen\Seeker\Contracts\ShouldSeekOnce;
 use Nihilsen\Seeker\Data;
 use Nihilsen\Seeker\Queue;
+use Nihilsen\Seeker\Queues;
 use Nihilsen\Seeker\Response;
 use Nihilsen\Seeker\Seekables;
 
@@ -32,7 +33,7 @@ class SeekAll implements ShouldQueue, ShouldBeUnique
     public $uniqueFor = 60 * 10; // 10 minutes
 
     public function __construct(
-        protected Queue $queue
+        public readonly ?Queue $endpointQueue = null
     ) {
         //
     }
@@ -44,18 +45,18 @@ class SeekAll implements ShouldQueue, ShouldBeUnique
      */
     protected function getJobs(): iterable
     {
-        // If $this->queue has not been set, we take that to mean
+        // If $this->endpointQueue has not been set, we take that to mean
         // that we should seek through all queues. In that case,
         // emit a corresponding SeekAll job for every queue.
-        if (! $this->queue) {
-            foreach (Queue::all() as $queue) {
+        if (! $this->endpointQueue) {
+            foreach (Queues::all() as $queue) {
                 yield new static($queue);
             }
 
             return;
         }
 
-        if ($this->queue->max_per_minute == 0) {
+        if ($this->endpointQueue->max_per_minute == 0) {
             return;
         }
 
@@ -63,7 +64,7 @@ class SeekAll implements ShouldQueue, ShouldBeUnique
 
         /** @var \Nihilsen\Seeker\Jobs\Seek */
         foreach ($this->getJobsForQueue() as $job) {
-            if ($jobsDispatched++ >= $this->queue->max_per_minute) {
+            if ($jobsDispatched++ >= $this->endpointQueue->max_per_minute) {
                 return;
             }
 
@@ -109,7 +110,7 @@ class SeekAll implements ShouldQueue, ShouldBeUnique
                 'endpoint',
                 fn (Builder $query) => $query->whereHas(
                     'queue',
-                    fn (Builder $query) => $query->whereId($this->queue->id)
+                    fn (Builder $query) => $query->whereId($this->endpointQueue->id)
                 )
             )
             ->where(
@@ -159,17 +160,17 @@ class SeekAll implements ShouldQueue, ShouldBeUnique
         );
 
         foreach ($seekables as $class => $endpoints) {
+            $class::resolveRelationUsing('soughtData', function (Model $model) {
+                return $model->morphMany(
+                    Data::class,
+                    'datable',
+                );
+            });
+
             /** @var \Illuminate\Database\Eloquent\Builder */
             $baseQuery = $class::query();
 
             if ($seekOnce) {
-                $class::resolveRelationUsing('soughtData', function (Model $model) {
-                    $model->morphMany(
-                        Data::class,
-                        'datable',
-                    );
-                });
-
                 $baseQuery->whereDoesntHave('soughtData');
             }
 
@@ -212,6 +213,6 @@ class SeekAll implements ShouldQueue, ShouldBeUnique
      */
     public function uniqueId()
     {
-        return static::class.$this->queue?->name;
+        return static::class.$this->endpointQueue?->name;
     }
 }

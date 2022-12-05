@@ -25,7 +25,7 @@ class Seek implements ShouldQueue
 
     public function __construct(
         protected ?Endpoint $endpoint,
-        protected ?Model $seekable,
+        public readonly ?Model $seekable,
         public readonly ?Response $parentResponse = null,
         protected ?string $url = null,
     ) {

@@ -11,11 +11,11 @@ return new class() extends Migration
         Schema::create(Schema::queuesTable, function (Blueprint $table) {
             Schema::queueIdColumn($table);
 
-            $table->string('name')
+            $table->string('class')
                 ->collation('latin1_general_ci')
                 ->unique();
 
-            $table->unsignedSmallInteger('max_per_minute');
+            $table->unsignedSmallInteger('max_per_minute')->nullable();
         });
     }
 };

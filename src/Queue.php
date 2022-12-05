@@ -2,13 +2,43 @@
 
 namespace Nihilsen\Seeker;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 /**
  * @property int $id
+ * @property int $max_per_minute
  * @property string $name
  */
-class Queue extends Model
+abstract class Queue extends Queues
 {
-    public int $max_per_minute = 0;
+    use Subclass;
+
+    /**
+     * Set the default $max_per_minute.
+     *
+     * @var int
+     */
+    public int $maxPerMinute = 0;
+
+    /**
+     * Get or create model.
+     *
+     * @return static
+     */
+    public static function get(): static
+    {
+        return static::first() ?? tap(new static(), fn (self $queue) => $queue->save());
+    }
+
+    /**
+     * Get the $max_per_limit attribute if the database value has been set,
+     * or otherwise fallback to the class-encoded value.
+     *
+     * @param  int  $value
+     * @return \Illuminate\Database\Eloquent\Casts\Attribute
+     */
+    public function maxPerMinute(): Attribute
+    {
+        return new Attribute(fn ($value) => $value ?? $this->maxPerMinute);
+    }
 }
