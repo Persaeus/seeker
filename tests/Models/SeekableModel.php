@@ -2,12 +2,13 @@
 
 namespace Nihilsen\Seeker\Tests\Models;
 
+use Nihilsen\Seeker\Contracts\ShouldSeekOnce;
 use Nihilsen\Seeker\Data;
 
 /**
  * @property string $value
  */
-class SeedableModel extends TestModel
+class SeekableModel extends TestModel implements ShouldSeekOnce
 {
     public static function data(
         ?string $value = null

@@ -19,7 +19,7 @@ it('can enumerate endpoints', function () {
 
     expect($endpoints)
         ->toBeInstanceOf(Collection::class)
-        ->toHaveCount(5)
+        ->toHaveCount(6)
         ->and($endpoints->map(fn ($endpoint) => $endpoint::class))
         ->toContain(
             SimpleEndpoint::class,
