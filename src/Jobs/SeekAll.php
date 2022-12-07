@@ -147,10 +147,8 @@ class SeekAll implements ShouldQueue, ShouldBeUnique
 
     protected function getSeekJobs(bool $seekOnce): iterable
     {
-        $seekables = Seekables::all();
-
         $seekables = Arr::where(
-            $seekables,
+            Seekables::all(),
             fn ($_, $class) => $seekOnce
                 ? (
                     is_subclass_of($class, ShouldSeekOnce::class) &&
