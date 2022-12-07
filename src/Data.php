@@ -11,6 +11,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Nihilsen\Seeker\Assimilation\Tasks\Tasks;
 use Nihilsen\Seeker\Contracts\Datable;
+use Nihilsen\Seeker\Exceptions\UnexpectedValueException;
 
 /**
  * @property array $data
@@ -272,8 +273,12 @@ class Data extends Model
                 $value = $model->$key;
             }
 
+            if (is_int($key)) {
+                throw new UnexpectedValueException('Cannot append attributes with numeric keys.');
+            }
+
             if (is_callable($value)) {
-                $value = $value($model->$key ?? null);
+                $value = $value($model);
             }
 
             $model->$key = $value;
