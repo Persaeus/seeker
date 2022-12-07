@@ -18,7 +18,7 @@ abstract class Queue extends Queues
      *
      * @var int
      */
-    public int $maxPerMinute = 0;
+    public const MAX_PER_MINUTE = 0;
 
     /**
      * Get or create model.
@@ -39,6 +39,6 @@ abstract class Queue extends Queues
      */
     public function maxPerMinute(): Attribute
     {
-        return new Attribute(fn ($value) => $value ?? $this->maxPerMinute);
+        return new Attribute(fn ($value) => $value ?? static::MAX_PER_MINUTE);
     }
 }

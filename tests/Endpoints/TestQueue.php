@@ -7,7 +7,9 @@ use Nihilsen\Seeker\Queue;
 class TestQueue extends Queue
 {
     /**
-     * {@inheritDoc}
+     * Set the default $max_per_minute.
+     *
+     * @var int
      */
-    public int $maxPerMinute = 2;
+    public const MAX_PER_MINUTE = 2;
 }
