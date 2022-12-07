@@ -34,7 +34,23 @@ class Seek implements ShouldQueue
 
     public function endpoint(): ?Endpoint
     {
-        return $this->endpoint ??= Endpoints::for($this->seekable)->first();
+        /** @var \Nihilsen\Seeker\Endpoint|null */
+        $this->endpoint ??= Endpoints::for($this->seekable)->first();
+
+        return $this->endpoint?->seeking($this->seekable);
+    }
+
+    public function feasible(?\Throwable &$exception = null): bool
+    {
+        try {
+            $this->endpoint()->check();
+
+            return true;
+        } catch (\Throwable $th) {
+            $exception = $th;
+
+            return false;
+        }
     }
 
     public function handle()
@@ -42,13 +58,11 @@ class Seek implements ShouldQueue
         $final = ++$this->attempts >= $this->endpoint::MAX_ATTEMPTS;
 
         try {
-            $this->endpoint
-                ->seeking($this->seekable)
-                ->seek(
-                    $this->url,
-                    $final,
-                    $this->parentResponse
-                );
+            $this->endpoint()->seek(
+                $this->url,
+                $final,
+                $this->parentResponse
+            );
         } catch (\Throwable $th) {
             if (
                 $final ||
@@ -68,14 +82,17 @@ class Seek implements ShouldQueue
     {
         return [
             /**
-             * Ensure that endpoint is fetchable
+             * Check that endpoint can be sought by running through
              */
             new class()
             {
                 public function handle(Seek $job, $next)
                 {
-                    if (! $job->endpoint()) {
-                        $job->delete();
+                    if (
+                        ! $job->endpoint() ||
+                        ! $job->feasible($exception)
+                    ) {
+                        $exception ? $job->fail($exception) : $job->delete();
 
                         return;
                     }
@@ -105,6 +122,6 @@ class Seek implements ShouldQueue
      */
     public function retryUntil()
     {
-        return now()->addMinutes(60 * 24 * 7); // seven days
+        return now()->addMinutes(60 * 24 * 3); // seven days
     }
 }

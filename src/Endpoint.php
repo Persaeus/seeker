@@ -107,6 +107,18 @@ abstract class Endpoint extends Endpoints
     }
 
     /**
+     * Perform any pre-seeking checks and adjustments.
+     *
+     * Any exception thrown will be caught and logged by the seek job.
+     *
+     * @throws \Throwable
+     */
+    public function check()
+    {
+        //
+    }
+
+    /**
      * Decode the given response
      *
      * @param  mixed  $encoded
